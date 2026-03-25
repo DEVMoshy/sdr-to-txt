@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDR33 Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2530;
+    --accent: #00d4aa;
+    --accent2: #0077ff;
+    --warn: #ff6b2b;
+    --text: #c8d4e0;
+    --text-dim: #4a5568;
+    --text-bright: #e8f0f8;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow Condensed', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--text-dim); }
+  .tagline {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+  }
+  .status-pill {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .status-pill.loaded { border-color: var(--accent); color: var(--accent); }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    height: calc(100vh - 53px);
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-section {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  /* UPLOAD ZONE */
+  .drop-zone {
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(0, 212, 170, 0.04);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon {
+    width: 36px; height: 36px;
+    margin: 0 auto 10px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+    font-size: 18px;
+  }
+  .drop-text {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+  .drop-text strong { color: var(--text); font-weight: 400; }
+  .drop-formats {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* FILTER */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .filter-bar input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .filter-bar input:focus { border-color: var(--accent); }
+  .filter-bar input::placeholder { color: var(--text-dim); }
+
+  /* EXPORT BUTTONS */
+  .export-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-export {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 11px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-export:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,170,0.04);
+  }
+  .btn-export:active { transform: scale(0.98); }
+  .btn-export.primary {
+    grid-column: span 2;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-export.primary:hover {
+    background: rgba(0,212,170,0.1);
+  }
+  .btn-export .ext {
+    display: block;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: 2px;
+  }
+  .btn-export:hover .ext { color: var(--accent); opacity: 0.7; }
+
+  /* JOB INFO */
+  .info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .info-key {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .info-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-bright);
+  }
+
+  /* RIGHT PANEL - TABLE */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .table-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .point-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    margin-left: auto;
+  }
+
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+  .table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+  .table-wrap::-webkit-scrollbar-track { background: var(--bg); }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface2);
+  }
+  th {
+    text-align: right;
+    padding: 10px 20px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--sans);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  th:first-child { text-align: center; }
+  td {
+    text-align: right;
+    padding: 8px 20px;
+    border-bottom: 1px solid rgba(30,37,48,0.5);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  td:first-child {
+    text-align: center;
+    color: var(--accent);
+  }
+  td.desc { color: var(--text-dim); }
+  tr:hover td { background: rgba(0,212,170,0.03); }
+  tr:hover td:first-child { color: var(--text-bright); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-dim);
+  }
+  .empty-state .big {
+    font-family: var(--mono);
+    font-size: 48px;
+    color: var(--border);
+    line-height: 1;
+  }
+  .empty-state .msg {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 18px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* SCR PREVIEW */
+  .preview-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-modal.open { display: flex; }
+  .preview-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 600px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-top {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-top-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .preview-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .preview-close:hover { color: var(--warn); }
+  .preview-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    white-space: pre;
+    line-height: 1.6;
+    background: var(--bg);
+  }
+
+  .disabled-msg {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    padding: 8px 0;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">SDR<span>//</span>CONVERT</div>
+  <div class="tagline">SDR33 → AutoCAD / Civil 3D</div>
+  <div class="status-pill" id="statusPill">NO FILE LOADED</div>
+</div>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="left-panel">
+
+    <div class="panel-section">
+      <div class="section-label">Input File</div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".sdr,.SDR,.txt">
+        <div class="drop-icon">⬆</div>
+        <div class="drop-text"><strong>Drop SDR file here</strong></div>
+        <div class="drop-formats">SDR33 · SOKKIA · TOTAL STATION</div>
+      </div>
+    </div>
+
+    <div class="panel-section" id="jobInfoSection" style="display:none">
+      <div class="section-label">Job Info</div>
+      <div class="info-list" id="jobInfo"></div>
+    </div>
+
+    <div class="panel-section" id="statsSection" style="display:none">
+      <div class="section-label">Point Statistics</div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Filter Points</div>
+      <div class="filter-bar">
+        <input type="text" id="filterInput" placeholder="Point # or range: 1-100 or 1,5,10">
+      </div>
+    </div>
+
+    <div class="panel-section" id="exportSection" style="display:none">
+      <div class="section-label">Export</div>
+      <div class="export-grid">
+        <button class="btn-export primary" onclick="exportCSV()">
+          Export CSV
+          <span class="ext">Civil 3D · PNEZD</span>
+        </button>
+        <button class="btn-export" onclick="exportSCR()">
+          Script
+          <span class="ext">.SCR · AutoCAD</span>
+        </button>
+        <button class="btn-export" onclick="exportTXT()">
+          Text
+          <span class="ext">.TXT · P N E Z</span>
+        </button>
+        <button class="btn-export" onclick="exportDXF()">
+          DXF
+          <span class="ext">.DXF · Points</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; padding: 16px 24px; border-top: 1px solid var(--border);">
+      <div style="font-size:10px; color: var(--text-dim); letter-spacing:1px; line-height:1.8;">
+        CLIENT-SIDE ONLY — NO DATA UPLOADED<br>
+        FILES PROCESSED LOCALLY IN BROWSER
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="table-header">
+      <div class="table-title">Point Cloud</div>
+      <div class="point-count" id="pointCount">—</div>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <div class="big">[ ]</div>
+      <div class="msg">Load SDR file to begin</div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th>#PT</th>
+            <th>EASTING</th>
+            <th>NORTHING</th>
+            <th>ELEVATION</th>
+            <th>DESC</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let allPoints = [];
+let jobMeta = {};
+let filteredPoints = [];
+
+// ─── PARSER ───────────────────────────────────────────────────────────────────
+function parseSDR(text) {
+  const lines = text.split(/\r?\n/);
+  const points = [];
+  const meta = {};
+
+  for (const line of lines) {
+    if (line.length < 4) continue;
+    const recType = line.substring(0, 4);
+
+    if (recType === '00NM') {
+      // Job header: version and date
+      meta.version = line.substring(4, 20).trim();
+      meta.date = line.substring(20, 40).trim();
+    }
+    if (recType === '10NM') {
+      meta.jobName = line.substring(4, 20).trim();
+    }
+    if (recType === '01NM') {
+      meta.instrument = line.substring(4, 20).trim();
+    }
+
+    if (recType === '08TP') {
+      // Fixed-width fields, 16 chars each after the 4-char record type
+      const data = line.substring(4);
+      const ptNum  = data.substring(0, 16).trim();
+      const east   = parseFloat(data.substring(16, 32).trim());
+      const north  = parseFloat(data.substring(32, 48).trim());
+      const elev   = parseFloat(data.substring(48, 64).trim());
+      const desc   = data.length > 64 ? data.substring(64, 80).trim() : '';
+
+      if (ptNum && !isNaN(east) && !isNaN(north) && !isNaN(elev)) {
+        points.push({ id: ptNum, e: east, n: north, z: elev, desc });
+      }
+    }
+  }
+
+  return { points, meta };
+}
+
+// ─── RENDER TABLE ─────────────────────────────────────────────────────────────
+function renderTable(pts) {
+  filteredPoints = pts;
+  const tbody = document.getElementById('tableBody');
+  const tableWrap = document.getElementById('tableWrap');
+  const empty = document.getElementById('emptyState');
+
+  if (!pts.length) {
+    tableWrap.style.display = 'none';
+    empty.style.display = 'flex';
+    document.getElementById('pointCount').textContent = '0 POINTS';
+    return;
+  }
+
+  tableWrap.style.display = 'block';
+  empty.style.display = 'none';
+  document.getElementById('pointCount').textContent = `${pts.length} POINTS`;
+
+  tbody.innerHTML = pts.map(p => `
+    <tr>
+      <td>${p.id}</td>
+      <td>${p.e.toFixed(3)}</td>
+      <td>${p.n.toFixed(3)}</td>
+      <td>${p.z.toFixed(3)}</td>
+      <td class="desc">${p.desc || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderStats(pts) {
+  const ns = pts.map(p => p.n);
+  const es = pts.map(p => p.e);
+  const zs = pts.map(p => p.z);
+
+  const minZ = Math.min(...zs).toFixed(3);
+  const maxZ = Math.max(...zs).toFixed(3);
+  const extE = (Math.max(...es) - Math.min(...es)).toFixed(1);
+  const extN = (Math.max(...ns) - Math.min(...ns)).toFixed(1);
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${pts.length}</div><div class="stat-label">Points</div></div>
+    <div class="stat-card"><div class="stat-value">${minZ}</div><div class="stat-label">Min Elev</div></div>
+    <div class="stat-card"><div class="stat-value">${maxZ}</div><div class="stat-label">Max Elev</div></div>
+    <div class="stat-card"><div class="stat-value">${extE}m</div><div class="stat-label">E Extent</div></div>
+  `;
+  document.getElementById('statsSection').style.display = 'block';
+}
+
+// ─── JOB META ─────────────────────────────────────────────────────────────────
+function renderMeta(meta) {
+  const items = [
+    ['Job Name', meta.jobName || '—'],
+    ['Instrument', meta.instrument || '—'],
+    ['Version', meta.version || '—'],
+    ['Date', meta.date || '—'],
+  ];
+  document.getElementById('jobInfo').innerHTML = items.map(([k, v]) => `
+    <div class="info-row">
+      <span class="info-key">${k}</span>
+      <span class="info-val">${v}</span>
+    </div>
+  `).join('');
+  document.getElementById('jobInfoSection').style.display = 'block';
+}
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+document.getElementById('filterInput').addEventListener('input', function () {
+  const val = this.value.trim();
+  if (!val) { renderTable(allPoints); return; }
+
+  let ids = new Set();
+
+  // Range: "1-100"
+  const rangeMatch = val.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (rangeMatch) {
+    const [, a, b] = rangeMatch;
+    for (let i = +a; i <= +b; i++) ids.add(String(i));
+  } else {
+    // List: "1,5,10"
+    val.split(',').forEach(v => ids.add(v.trim()));
+  }
+
+  renderTable(allPoints.filter(p => ids.has(p.id)));
+});
+
+// ─── FILE LOAD ────────────────────────────────────────────────────────────────
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const { points, meta } = parseSDR(text);
+    allPoints = points;
+    jobMeta = meta;
+
+    renderMeta(meta);
+    renderStats(points);
+    renderTable(points);
+
+    document.getElementById('exportSection').style.display = 'block';
+
+    const pill = document.getElementById('statusPill');
+    pill.textContent = file.name.toUpperCase();
+    pill.className = 'status-pill loaded';
+
+    showToast(`${points.length} points loaded`);
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+// ─── EXPORT: CSV (PNEZD for Civil 3D) ────────────────────────────────────────
+function exportCSV() {
+  if (!filteredPoints.length) return;
+  const rows = filteredPoints.map(p => `${p.id},${p.n.toFixed(3)},${p.e.toFixed(3)},${p.z.toFixed(3)},${p.desc}`);
+  const header = 'POINT,NORTHING,EASTING,ELEVATION,DESCRIPTION';
+  download(header + '\n' + rows.join('\n'), 'points_PNEZD.csv', 'text/csv');
+  showToast('CSV exported (PNEZD)');
+}
+
+// ─── EXPORT: TXT (P E N Z) ────────────────────────────────────────────────────
+function exportTXT() {
+  if (!filteredPoints.length) return;
+  const rows = filteredPoints.map(p =>
+    `${String(p.id).padStart(6)} ${p.e.toFixed(3).padStart(14)} ${p.n.toFixed(3).padStart(14)} ${p.z.toFixed(3).padStart(10)} ${p.desc}`
+  );
+  download(rows.join('\n'), 'points.txt', 'text/plain');
+  showToast('TXT exported');
+}
+
+// ─── EXPORT: SCR (AutoCAD Script) ─────────────────────────────────────────────
+function exportSCR() {
+  if (!filteredPoints.length) return;
+  
+  let scr = '';
+  // Set point display
+  scr += 'PDMODE\n3\n';
+  scr += 'PDSIZE\n0.5\n';
+  
+  // Draw all points
+  filteredPoints.forEach(p => {
+    scr += `POINT\n${p.e.toFixed(3)},${p.n.toFixed(3)},${p.z.toFixed(3)}\n`;
+  });
+  
+  // Add text labels
+  filteredPoints.forEach(p => {
+    const offset = 0.3;
+    scr += `TEXT\n${(p.e + offset).toFixed(3)},${(p.n + offset).toFixed(3)}\n0.3\n0\n${p.id}\n`;
+  });
+
+  scr += '\n';
+  download(scr, 'points.scr', 'text/plain');
+  showToast('SCR exported');
+}
+
+// ─── EXPORT: DXF ──────────────────────────────────────────────────────────────
+function exportDXF() {
+  if (!filteredPoints.length) return;
+  
+  let dxf = '';
+  
+  // HEADER
+  dxf += '0\nSECTION\n2\nHEADER\n';
+  dxf += '9\n$ACADVER\n1\nAC1015\n';
+  dxf += '9\n$INSUNITS\n70\n6\n'; // meters
+  dxf += '0\nENDSEC\n';
+
+  // TABLES
+  dxf += '0\nSECTION\n2\nTABLES\n';
+  dxf += '0\nTABLE\n2\nLAYER\n70\n2\n';
+  dxf += '0\nLAYER\n2\nPOINTS\n70\n0\n62\n3\n6\nContinuous\n';
+  dxf += '0\nLAYER\n2\nLABELS\n70\n0\n62\n7\n6\nContinuous\n';
+  dxf += '0\nENDTAB\n0\nENDSEC\n';
+
+  // ENTITIES
+  dxf += '0\nSECTION\n2\nENTITIES\n';
+
+  filteredPoints.forEach(p => {
+    // POINT entity
+    dxf += '0\nPOINT\n';
+    dxf += '8\nPOINTS\n';
+    dxf += `10\n${p.e.toFixed(3)}\n`;
+    dxf += `20\n${p.n.toFixed(3)}\n`;
+    dxf += `30\n${p.z.toFixed(3)}\n`;
+
+    // TEXT label (point number)
+    const offset = 0.3;
+    dxf += '0\nTEXT\n';
+    dxf += '8\nLABELS\n';
+    dxf += `10\n${(p.e + offset).toFixed(3)}\n`;
+    dxf += `20\n${(p.n + offset).toFixed(3)}\n`;
+    dxf += `30\n${p.z.toFixed(3)}\n`;
+    dxf += '40\n0.3\n'; // text height
+    dxf += `1\n${p.id}\n`;
+  });
+
+  dxf += '0\nENDSEC\n0\nEOF\n';
+  download(dxf, 'points.dxf', 'application/dxf');
+  showToast('DXF exported');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function download(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
