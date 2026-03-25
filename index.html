@@ -7,93 +7,18 @@
     <title>SDR33 Converter</title>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>SDR33 Converter</h1>
-        </header>
-        <main>
-            <section class="converter">
-                <h2>Convert SDR33 Data</h2>
-                <textarea id="inputData" placeholder="Paste SDR33 data here..."></textarea>
-                <button id="convertBtn">Convert</button>
-                <div id="outputContainer" class="output"></div>
-                <button id="exportBtn">Export</button>
-            </section>
-        </main>
-    </div>
+    <header>
+        <h1>SDR33 Converter</h1>
+    </header>
+    <main>
+        <form id="converter-form">
+            <label for="input">Input SDR33 Data:</label>
+            <textarea id="input" rows="10" cols="30"></textarea>
+            <button type="submit">Convert</button>
+        </form>
+        <h2>Output:</h2>
+        <pre id="output"></pre>
+    </main>
     <script src="script.js"></script>
 </body>
 </html>
-
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background-color: #282c34;
-    color: white;
-    margin: 0;
-    padding: 20px;
-}
-.container {
-    max-width: 600px;
-    margin: auto;
-    background: #3c4043;
-    border-radius: 8px;
-    padding: 20px;
-}
-header {
-    text-align: center;
-}
-h1 {
-    margin: 0;
-}
-.converter {
-    margin-top: 20px;
-}
-textarea {
-    width: 100%;
-    height: 150px;
-    border: none;
-    border-radius: 4px;
-    padding: 10px;
-    color: black;
-}
-button {
-    background-color: #61dafb;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 15px;
-    color: black;
-    cursor: pointer;
-}
-.output {
-    margin-top: 20px;
-    background: #fff;
-    padding: 10px;
-    border-radius: 4px;
-}
-</style>
-
-<script>
-document.getElementById('convertBtn').addEventListener('click', function() {
-    const inputData = document.getElementById('inputData').value;
-    const outputContainer = document.getElementById('outputContainer');
-    
-    // Parsing logic
-    const convertedData = parseSDR33Data(inputData); // Placeholder function, implement actual parsing
-    outputContainer.textContent = convertedData;
-});
-
-function parseSDR33Data(data) {
-    // Implement actual parsing of SDR33 data here
-    return data; // Temporary output
-}
-
-document.getElementById('exportBtn').addEventListener('click', function() {
-    const outputContent = document.getElementById('outputContainer').textContent;
-    const blob = new Blob([outputContent], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    link.download = 'converted_data.txt';
-    link.click();
-});
-</script>
